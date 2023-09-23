@@ -3,7 +3,8 @@ const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcrypt");
 const OTP = require("../models/Otp");
 const otpGenerator = require("otp-generator");
-import { OTP_DIGITS_LENGTH, OTP_CONFIGURATIONS } from "../constants";
+import { USER_ROLES, OTP_DIGITS_LENGTH, OTP_CONFIGURATIONS } from "../utils/constants";
+import jwt from "jsonwebtoken"
 
 const sendOTP = async (email) => {
   let otp = otpGenerator.generate(OTP_DIGITS_LENGTH, OTP_CONFIGURATIONS);
@@ -26,12 +27,6 @@ const sendOTP = async (email) => {
 const getAllUsers = asyncHandler(async (req, res) => {
   const users = await User.find().select("-password").lean();
 
-  if (!users?.length)
-    return res.status(400).json({
-      success: false,
-      message: "No users found",
-    });
-
   res.json({
     success: true,
     message: "Users retrieved successfully",
@@ -44,7 +39,7 @@ const createNewUser = asyncHandler(async (req, res) => {
 
   // User should have only one role -> User or Company
   switch (role) {
-    case "User": {
+    case USER_ROLES.guest: {
       const { email, password } = req.body;
 
       // Validate entries
@@ -94,12 +89,12 @@ const createNewUser = asyncHandler(async (req, res) => {
         .json({ success: false, message: "Invalid user data received" });
     }
 
-    case "Company":
-      return res.status(403).json({ success: false, message: "Coming soon.." });
+    case USER_ROLES.business:
+      return res.status(400).json({ success: false, message: "Coming soon.." });
 
     default:
       return res
-        .status(403)
+        .status(400)
         .json({ success: false, message: "Invalid user role" });
   }
 });
@@ -177,9 +172,56 @@ const deleteuser = asyncHandler(async (req, res) => {
   });
 });
 
+const loginUser = asyncHandler(async (req, res) => {
+  const { email, password } = req.body
+
+  const user = await User.findOne({ email })
+  if(!user){
+    return res.status(401).json({
+      success: false,
+      message: "Incorrect email or password"
+    })
+  }
+
+  if(!user.isVerified){
+    return res.status(401).json({
+      success: false,
+      message: "Account not verified"
+    })
+  }
+
+  const compareResult = await bcrypt.compare(password, user.password)
+
+  if(!compareResult){
+    return res.status(401).json({
+      success: false,
+      message: "Incorrect email or password"
+    })
+  }
+
+  const token = jwt.sign({
+    id: user.id,
+    role: user.role
+  }, process.env.JWT_SECRET, {
+    expiresIn: '18000000'
+  })
+
+  return res.json({
+    success: true,
+    message: 'Login successful',
+    data: {
+      token,
+      user
+    }
+  })
+
+
+})
+
 module.exports = {
   getAllUsers,
   createNewUser,
   updateUser,
   deleteuser,
+  loginUser
 };

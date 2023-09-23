@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { USER_ROLES } from "../utils/constants";
 
 const userSchema = new mongoose.Schema({
   email: {
@@ -7,16 +8,19 @@ const userSchema = new mongoose.Schema({
     trim: true,
     unique: true,
   },
+
   password: {
     type: String,
     required: true,
     trim: true,
   },
+  
   role: {
     type: String,
-    enum: ["Company", "User", "Admin"],
-    default: "User",
+    enum: Object.keys(USER_ROLES),
+    default: USER_ROLES.guest,
   },
+
   isVerified: {
     type: Boolean,
     default: false,

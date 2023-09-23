@@ -18,6 +18,13 @@ function startServer({ port = process.env.PORT } = {}) {
   app.use(cookieParser());
 
   app.use("/api", getRoutes());
+
+  app.use("*", (req, res) => {
+    res.status(404).json({
+      success: false,
+      message: 'Endpoint not found'
+    })
+  })
   app.use(errorMiddleware);
 
   return new Promise((resolve) => {
