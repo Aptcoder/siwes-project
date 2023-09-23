@@ -1,7 +1,7 @@
 import express from "express";
 import { getMathRoutes } from "./math";
 import { userRoutes } from "./user";
-import { otpRoute } from "./otp";
+import { otpRoute } from "./verify-email";
 
 function getRoutes() {
   const router = express.Router();

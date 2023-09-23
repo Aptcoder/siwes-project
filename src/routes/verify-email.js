@@ -1,10 +1,10 @@
 const express = require("express");
-const sendOTP = require("../controllers/otp");
+const verifyEmail = require("../controllers/verifyEmail");
 
 function otpRoute() {
   const router = express.Router();
 
-  router.post("/", sendOTP);
+  router.post("/", verifyEmail);
 
   return router;
 }

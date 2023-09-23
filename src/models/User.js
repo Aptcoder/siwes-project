@@ -5,19 +5,22 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
+    unique: true,
   },
   password: {
     type: String,
     required: true,
     trim: true,
   },
-  roles: [
-    {
-      type: String,
-      enum: ["Company", "User", "Admin"],
-      default: "User",
-    },
-  ],
+  role: {
+    type: String,
+    enum: ["Company", "User", "Admin"],
+    default: "User",
+  },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 module.exports = mongoose.model("User", userSchema);

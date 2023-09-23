@@ -2,93 +2,186 @@ const User = require("../models/User");
 const asyncHandler = require("express-async-handler");
 const bcrypt = require("bcrypt");
 const OTP = require("../models/Otp");
+const otpGenerator = require("otp-generator");
+import { OTP_DIGITS_LENGTH, OTP_CONFIGURATIONS } from "../constants";
+
+const sendOTP = async (email) => {
+  let otp = otpGenerator.generate(OTP_DIGITS_LENGTH, OTP_CONFIGURATIONS);
+  let result = await OTP.findOne({ otp });
+
+  while (result?.email == email) {
+    otp = otpGenerator.generate(OTP_DIGITS_LENGTH, OTP_CONFIGURATIONS);
+    result = await OTP.findOne({ otp });
+  }
+
+  const otpPayload = { email, otp };
+  await OTP.create(otpPayload);
+
+  return {
+    success: true,
+    message: `OTP sent to ${email}`,
+  };
+};
 
 const getAllUsers = asyncHandler(async (req, res) => {
   const users = await User.find().select("-password").lean();
 
   if (!users?.length)
     return res.status(400).json({
+      success: false,
       message: "No users found",
     });
 
   res.json({
+    success: true,
     message: "Users retrieved successfully",
     data: users,
   });
 });
 
 const createNewUser = asyncHandler(async (req, res) => {
-  const { email, password, roles } = req.body;
+  const { role } = req.body;
 
-  if (!email || !password || !Array.isArray(roles) || !roles.length)
-    return res.status(403).json({ message: "All fields are required" });
+  // User should have one role -> User or Company
+  if (!role)
+    return res
+      .status(403)
+      .json({ success: false, message: "All fields are required" });
+  else if (typeof role !== "string")
+    return res
+      .status(403)
+      .json({ success: false, message: "Invalid role type" });
+  else if (role == "User") {
+    const { email, password } = req.body;
 
-  const duplicate = await User.findOne({ email }).lean().exec();
+    // Validate entries
+    if (!email || !password)
+      return res
+        .status(403)
+        .json({ success: false, message: "All fields are required" });
 
-  if (duplicate) return res.status(409).json({ message: "Duplicate email" });
+    // check if user exists
+    const user = await User.findOne({ email }).exec();
 
-  const response = await OTP.find({ email }).sort({ createdAt: -1 }).limit(1);
+    // user exist
+    if (user) {
+      // user is verified
+      if (user.isVerified)
+        return res
+          .status(409)
+          .json({ success: false, message: "User is already registered" });
 
-  if (response.length === 0 || otp !== response[0].otp) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid OTP",
-    });
+      // user not verified
+      user.role = role;
+      user.password = await bcrypt.hash(password, 10);
+
+      await user.save();
+      const sendOTPResponse = await sendOTP(email);
+
+      return res.json(sendOTPResponse);
+    }
+
+    //  user does not exist
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const userObject = {
+      email,
+      password: hashedPassword,
+      role,
+    };
+
+    const isUserRegisterd = await User.create(userObject);
+
+    if (isUserRegisterd) {
+      const sendOTPResponse = await sendOTP(email);
+      return res.json(sendOTPResponse);
+    }
+
+    res
+      .status(400)
+      .json({ success: false, message: "Invalid user data received" });
+  } else if (role === "Company") {
+    return res.status(403).json({ success: false, message: "Coming soon.." });
+  } else {
+    return res
+      .status(403)
+      .json({ success: false, message: "Invalid user role" });
   }
 
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const userObject = {
-    email,
-    password: hashedPassword,
-    roles,
-  };
-
-  const user = await User.create(userObject);
-
-  if (user)
-    return res.status(201).json({ Message: `New user ${email} created` });
-
-  res.status(400).json({ message: "Invalid user data received" });
+  res
+    .status(400)
+    .json({ success: false, message: "Invalid user data received" });
 });
 
 const updateUser = asyncHandler(async (req, res) => {
-  const { id, email, roles, password } = req.body;
+  const { role } = req.body;
 
-  if (!id || !email || !Array.isArray(roles) || !roles.length)
-    return res.status(403).json({ message: "All fields are required" });
+  if (!role)
+    return res
+      .status(403)
+      .json({ success: false, message: "All fields are required" });
+  else if (typeof role !== "string")
+    return res
+      .status(403)
+      .json({ success: false, message: "Invalid role type" });
+  if (role == "User") {
+    const { id, email, password } = req.body;
 
-  const user = await User.findById(id).exec();
+    if (!id || !email)
+      return res
+        .status(403)
+        .json({ success: false, message: "All fields are required" });
 
-  if (!user) return res.status(400).json({ message: "User not found" });
+    const user = await User.findById(id).exec();
 
-  const duplicate = await User.findOne({ email }).lean().exec();
+    if (!user)
+      return res
+        .status(400)
+        .json({ success: false, message: "User not found" });
 
-  if (duplicate && duplicate?._id.toString() !== id)
-    return res.status(409).json({ message: "Duplicate email" });
+    if (!user.isVerified)
+      return res
+        .status(403)
+        .json({ success: false, message: "User not verified" });
 
-  user.email = email;
-  user.roles = roles;
+    const duplicate = await User.findOne({ email }).lean().exec();
+    if (duplicate && duplicate?._id.toString() !== id)
+      return res
+        .status(409)
+        .json({ success: false, message: "Duplicate email" });
 
-  if (password) user.password = await bcrypt.hash(password, 10);
+    user.email = email;
+    user.role = role;
 
-  const updatedUser = await user.save();
+    if (password) user.password = await bcrypt.hash(password, 10);
+    const updatedUser = await user.save();
 
-  res.json({ message: `${updatedUser.email} updated` });
+    res.json({ success: true, message: `${updatedUser.email} updated` });
+  } else if (role === "Company") {
+    return res.status(403).json({ success: false, message: "Coming soon.." });
+  } else {
+    return res
+      .status(403)
+      .json({ success: false, message: "Invalid user role" });
+  }
 });
 
 const deleteuser = asyncHandler(async (req, res) => {
   const { id } = req.body;
 
-  if (!id) return res.status(403).json({ message: "User Id required" });
+  if (!id)
+    return res
+      .status(403)
+      .json({ success: false, message: "User Id required" });
 
   const user = await User.findById(id).exec();
 
-  if (!user) return res.status(400).json({ message: "User not found" });
+  if (!user)
+    return res.status(400).json({ success: false, message: "User not found" });
 
   const result = await user.deleteOne();
 
-  response.json({
+  res.json({
+    success: true,
     message: `User ${result.email} with Id ${result._id} deleted`,
   });
 });
