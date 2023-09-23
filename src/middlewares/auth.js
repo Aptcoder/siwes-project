@@ -2,8 +2,8 @@ import jwt from 'jsonwebtoken'
 import { USER_ROLES } from '../utils/constants'
 
 const allowedRoles = {
-    admin: [USER_ROLES.admin, USER_ROLES.guest],
-    guest: [USER_ROLES.guest],
+    guest: [USER_ROLES.admin, USER_ROLES.guest],
+    admin: [USER_ROLES.admin],
 }
 
 function verifyToken(token) {
@@ -17,20 +17,27 @@ function verifyToken(token) {
     })
 }
 
-export async function auth(role = 'guest') {
+export function auth(role = 'guest') {
     return async function (req, res, next) {
         try {
             const authHeader = req.header('Authorization')
+            if (!authHeader) {
+                return res.status(401).send({
+                    message: 'Not allowed. Please supply a valid token',
+                    success: false,
+                    data: {},
+                })
+            }
             const [format, token] = authHeader.split(' ')
             if (format != 'Bearer') {
-                return res.status(403).send({
+                return res.status(401).send({
                     message: 'Not allowed. Please supply a valid token',
                     success: false,
                     data: {},
                 })
             }
             if (!token) {
-                return res.status(403).send({
+                return res.status(401).send({
                     message: 'Not allowed. Please supply a valid token',
                     success: false,
                     data: {},
@@ -52,7 +59,8 @@ export async function auth(role = 'guest') {
             }
             return next()
         } catch (err) {
-            return res.status(403).send({
+            console.log('err', err)
+            return res.status(401).send({
                 message: 'Invalid token supplied',
                 status: false,
                 data: {},
