@@ -4,6 +4,7 @@ import { USER_ROLES } from '../utils/constants'
 const allowedRoles = {
     guest: [USER_ROLES.admin, USER_ROLES.guest],
     admin: [USER_ROLES.admin],
+    business: [USER_ROLES.business, USER_ROLES.admin],
 }
 
 function verifyToken(token) {
