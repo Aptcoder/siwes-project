@@ -56,6 +56,12 @@ function getBusinessRoutes() {
         reviewController.createReview
     )
 
+    singleBusinessRouter.get('/reviews/:reviewId', reviewController.getReview)
+    singleBusinessRouter.delete(
+        '/reviews/:reviewId',
+        reviewController.deleteReview
+    )
+
     router.use('/:businessId', singleBusinessRouter)
 
     return router

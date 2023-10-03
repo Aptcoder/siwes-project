@@ -24,6 +24,10 @@ const reviewSchema = new mongoose.Schema({
         max: 5,
         required: true,
     },
+
+    images: {
+        type: [String],
+    },
 })
 
 reviewSchema.pre('save', async function () {
