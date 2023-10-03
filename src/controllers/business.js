@@ -4,11 +4,30 @@ const asyncHandler = require('express-async-handler')
 const bcrypt = require('bcrypt')
 
 const getAllBusinesses = asyncHandler(async (req, res) => {
-    const businesses = await User.find()
-    res.json({
+    const businesses = await Business.find()
+    return res.json({
         success: true,
         message: 'Businesses retrieved successfully',
         data: businesses,
+    })
+})
+
+const getBusiness = asyncHandler(async (req, res) => {
+    const { businessId } = req.params
+    console.log('bus', businessId)
+    const business = await Business.findOne({ _id: businessId })
+    if (!business) {
+        return res.status(404).send({
+            success: false,
+            message: 'Business not found',
+            data: business,
+        })
+    }
+
+    return res.send({
+        success: false,
+        message: 'Business retrieved successully',
+        data: business,
     })
 })
 
@@ -100,4 +119,5 @@ module.exports = {
     getAllBusinesses,
     createBusiness,
     loginBusiness,
+    getBusiness,
 }

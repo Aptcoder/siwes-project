@@ -67,6 +67,25 @@ const businessSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+
+    ratingData: {
+        sum: {
+            type: Number,
+            default: 0,
+        },
+        count: {
+            type: Number,
+            default: 0,
+        },
+    },
+
+    rating: {
+        type: Number,
+        min: 0,
+        max: 5,
+        required: true,
+        default: 0,
+    },
 })
 
 module.exports = mongoose.model('Business', businessSchema)

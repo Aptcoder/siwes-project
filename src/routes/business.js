@@ -4,16 +4,19 @@ import { auth } from '../middlewares/auth'
 import {
     authUserBodySchema,
     createBusinessBodySchema,
+    getBusinessParamSchema,
 } from '../schemas/business'
-import { USER_ROLES } from '../utils/constants'
+import { createReviewBodySchema } from '../schemas/review'
+
 const businessController = require('../controllers/business')
+const reviewController = require('../controllers/review')
 
 function getBusinessRoutes() {
     const router = express.Router()
 
     router
         .route('/')
-        .get(auth(USER_ROLES.admin), businessController.getAllBusinesses)
+        .get(businessController.getAllBusinesses)
         .post(
             validateRequest(createBusinessBodySchema),
             businessController.createBusiness
@@ -26,6 +29,34 @@ function getBusinessRoutes() {
         validateRequest(authUserBodySchema),
         businessController.loginBusiness
     )
+
+    // router.get(
+    //     '/:businessId',
+    //     auth(),
+    //     validateRequest(null, getBusinessParamSchema),
+    //     businessController.getBusiness
+    // )
+
+    const singleBusinessRouter = express.Router({
+        mergeParams: true,
+    })
+
+    singleBusinessRouter.use(validateRequest(null, getBusinessParamSchema))
+
+    singleBusinessRouter.get('/', businessController.getBusiness)
+    singleBusinessRouter.get(
+        '/reviews',
+        reviewController.getAllReviewsForBusiness
+    )
+
+    singleBusinessRouter.post(
+        '/reviews',
+        auth(),
+        validateRequest(createReviewBodySchema),
+        reviewController.createReview
+    )
+
+    router.use('/:businessId', singleBusinessRouter)
 
     return router
 }

@@ -9,4 +9,8 @@ const createBusinessBodySchema = authUserBodySchema.keys({
     website: Joi.string().required(),
 })
 
-export { createBusinessBodySchema }
+const getBusinessParamSchema = Joi.object().keys({
+    businessId: Joi.string().required(),
+})
+
+export { createBusinessBodySchema, authUserBodySchema, getBusinessParamSchema }
