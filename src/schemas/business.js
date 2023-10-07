@@ -7,6 +7,7 @@ const createBusinessBodySchema = authUserBodySchema.keys({
     tagLine: Joi.string(),
     description: Joi.string(),
     website: Joi.string().required(),
+    category: Joi.string().required(),
 })
 
 const getBusinessParamSchema = Joi.object().keys({

@@ -1,10 +1,9 @@
 const Business = require('../models/business')
 const Review = require('../models/review')
 const { USER_ROLES } = require('../utils/constants')
-const asyncHandler = require('express-async-handler')
 const bcrypt = require('bcrypt')
 
-const getAllReviewsForBusiness = asyncHandler(async (req, res) => {
+const getAllReviewsForBusiness = async (req, res) => {
     const { businessId } = req.params
     const reviews = await Review.find({
         business: businessId,
@@ -14,9 +13,9 @@ const getAllReviewsForBusiness = asyncHandler(async (req, res) => {
         message: 'Business Reviews retrieved successfully',
         data: reviews,
     })
-})
+}
 
-const getReview = asyncHandler(async (req, res) => {
+const getReview = async (req, res) => {
     const { businessId, reviewId } = req.params
     const review = await Review.findOne({
         business: businessId,
@@ -27,9 +26,9 @@ const getReview = asyncHandler(async (req, res) => {
         message: 'Business Review retrieved successfully',
         data: review,
     })
-})
+}
 
-const createReview = asyncHandler(async (req, res) => {
+const createReview = async (req, res) => {
     const { comment, rating } = req.body
     const { businessId } = req.params
     const { id: userId } = req.user
@@ -48,9 +47,9 @@ const createReview = asyncHandler(async (req, res) => {
         message: 'Business review created successfully',
         data: review,
     })
-})
+}
 
-const deleteReview = asyncHandler(async (req, res) => {
+const deleteReview = async (req, res) => {
     const { businessId, reviewId } = req.params
     const { id: userId } = req.user
 
@@ -81,7 +80,7 @@ const deleteReview = asyncHandler(async (req, res) => {
         success: true,
         message: 'Review deleted',
     })
-})
+}
 module.exports = {
     getAllReviewsForBusiness,
     createReview,

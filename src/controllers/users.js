@@ -1,34 +1,10 @@
 const User = require('../models/User')
-const asyncHandler = require('express-async-handler')
 const bcrypt = require('bcrypt')
-const OTP = require('../models/Otp')
-const otpGenerator = require('otp-generator')
-import {
-    USER_ROLES,
-    OTP_DIGITS_LENGTH,
-    OTP_CONFIGURATIONS,
-} from '../utils/constants'
+import { USER_ROLES } from '../utils/constants'
 import jwt from 'jsonwebtoken'
+import { sendOTP } from '../utils/sendOtp'
 
-const sendOTP = async (email) => {
-    let otp = otpGenerator.generate(OTP_DIGITS_LENGTH, OTP_CONFIGURATIONS)
-    let result = await OTP.findOne({ otp })
-
-    while (result?.email == email) {
-        otp = otpGenerator.generate(OTP_DIGITS_LENGTH, OTP_CONFIGURATIONS)
-        result = await OTP.findOne({ otp })
-    }
-
-    const otpPayload = { email, otp }
-    await OTP.create(otpPayload)
-
-    return {
-        success: true,
-        message: `OTP sent to ${email}`,
-    }
-}
-
-const getAllUsers = asyncHandler(async (req, res) => {
+const getAllUsers = async (req, res) => {
     const users = await User.find().select('-password').lean()
 
     res.json({
@@ -36,9 +12,9 @@ const getAllUsers = asyncHandler(async (req, res) => {
         message: 'Users retrieved successfully',
         data: users,
     })
-})
+}
 
-const createNewUser = asyncHandler(async (req, res) => {
+const createNewUser = async (req, res) => {
     const { role } = req.body
 
     // User should have only one role -> User or Company
@@ -48,12 +24,10 @@ const createNewUser = asyncHandler(async (req, res) => {
 
             // Validate entries
             if (!email || !password)
-                return res
-                    .status(403)
-                    .json({
-                        success: false,
-                        message: 'All fields are required',
-                    })
+                return res.status(403).json({
+                    success: false,
+                    message: 'All fields are required',
+                })
 
             // check if user exists
             const user = await User.findOne({ email }).exec()
@@ -62,12 +36,10 @@ const createNewUser = asyncHandler(async (req, res) => {
             if (user) {
                 // user is verified
                 if (user.isVerified)
-                    return res
-                        .status(409)
-                        .json({
-                            success: false,
-                            message: 'User is already registered',
-                        })
+                    return res.status(409).json({
+                        success: false,
+                        message: 'User is already registered',
+                    })
 
                 // user not verified
                 user.role = role
@@ -109,9 +81,9 @@ const createNewUser = asyncHandler(async (req, res) => {
                 .status(400)
                 .json({ success: false, message: 'Invalid user role' })
     }
-})
+}
 
-const updateUser = asyncHandler(async (req, res) => {
+const updateUser = async (req, res) => {
     const { role } = req.body
 
     switch (role) {
@@ -119,12 +91,10 @@ const updateUser = asyncHandler(async (req, res) => {
             const { id, email, password } = req.body
 
             if (!id || !email)
-                return res
-                    .status(403)
-                    .json({
-                        success: false,
-                        message: 'All fields are required',
-                    })
+                return res.status(403).json({
+                    success: false,
+                    message: 'All fields are required',
+                })
 
             const user = await User.findById(id).exec()
 
@@ -166,9 +136,9 @@ const updateUser = asyncHandler(async (req, res) => {
                 .status(403)
                 .json({ success: false, message: 'Invalid user role' })
     }
-})
+}
 
-const deleteuser = asyncHandler(async (req, res) => {
+const deleteuser = async (req, res) => {
     const { id } = req.body
 
     if (!id)
@@ -189,9 +159,9 @@ const deleteuser = asyncHandler(async (req, res) => {
         success: true,
         message: `User ${result.email} with Id ${result._id} deleted`,
     })
-})
+}
 
-const loginUser = asyncHandler(async (req, res) => {
+const loginUser = async (req, res) => {
     const { email, password } = req.body
 
     const user = await User.findOne({ email })
@@ -237,7 +207,7 @@ const loginUser = asyncHandler(async (req, res) => {
             user,
         },
     })
-})
+}
 
 module.exports = {
     getAllUsers,
