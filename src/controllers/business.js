@@ -1,18 +1,19 @@
 const Business = require('../models/business')
 const { USER_ROLES } = require('../utils/constants')
-const asyncHandler = require('express-async-handler')
 const bcrypt = require('bcrypt')
+const { sendOTP } = require('../utils/sendOtp')
+import jwt from 'jsonwebtoken'
 
-const getAllBusinesses = asyncHandler(async (req, res) => {
+const getAllBusinesses = async (req, res) => {
     const businesses = await Business.find()
     return res.json({
         success: true,
         message: 'Businesses retrieved successfully',
         data: businesses,
     })
-})
+}
 
-const getBusiness = asyncHandler(async (req, res) => {
+const getBusiness = async (req, res) => {
     const { businessId } = req.params
     console.log('bus', businessId)
     const business = await Business.findOne({ _id: businessId })
@@ -29,9 +30,9 @@ const getBusiness = asyncHandler(async (req, res) => {
         message: 'Business retrieved successully',
         data: business,
     })
-})
+}
 
-const loginBusiness = asyncHandler(async (req, res) => {
+const loginBusiness = async (req, res) => {
     const { email, password } = req.body
 
     const business = await Business.findOne({ email })
@@ -60,7 +61,7 @@ const loginBusiness = asyncHandler(async (req, res) => {
 
     const token = jwt.sign(
         {
-            id: user.id,
+            id: business._id,
             role: USER_ROLES.business,
         },
         process.env.JWT_SECRET,
@@ -74,12 +75,12 @@ const loginBusiness = asyncHandler(async (req, res) => {
         message: 'Login successful',
         data: {
             token,
-            user,
+            business,
         },
     })
-})
+}
 
-const createBusiness = asyncHandler(async (req, res) => {
+const createBusiness = async (req, res) => {
     const businessData = req.body
 
     const existingBusiness = await Business.findOne({
@@ -109,12 +110,11 @@ const createBusiness = asyncHandler(async (req, res) => {
     let business = new Business(businessData)
     await business.save()
 
-    return res.send({
-        success: true,
-        message: 'Business created successfully',
-        data: business,
-    })
-})
+    const sendOTPResponse = await sendOTP(business.email)
+
+    return res.json(sendOTPResponse)
+}
+
 module.exports = {
     getAllBusinesses,
     createBusiness,

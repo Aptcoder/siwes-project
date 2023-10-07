@@ -1,28 +1,36 @@
-const OTP = require("../models/Otp");
-const User = require("../models/User");
-const asyncHandler = require("express-async-handler");
+const OTP = require('../models/Otp')
+const User = require('../models/User')
+const Business = require('../models/business')
 
-const verifyEmail = asyncHandler(async (req, res) => {
-  const { email, otp } = req.body;
+const verifyEmail = async (req, res) => {
+    const { email, otp, isBusiness } = req.body
 
-  const response = await OTP.find({ email }).sort({ createdAt: -1 }).limit(1);
+    if (!email || !otp)
+        return res.status(403).json({
+            success: false,
+            message: 'All fields are required',
+        })
 
-  if (response.length === 0 || otp !== response[0].otp)
-    return res.status(400).json({
-      success: false,
-      message: "Invalid OTP",
-    });
+    const response = await OTP.find({ email }).sort({ createdAt: -1 }).limit(1)
 
-  const user = await User.findOne({ email }).exec();
+    if (response.length === 0 || otp !== response[0].otp)
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid OTP',
+        })
 
-  user.isVerified = true;
+    let user
 
-  await user.save();
+    if (isBusiness) user = await Business.findOne({ email }).exec()
+    else user = await User.findOne({ email }).exec()
 
-  return res.status(201).json({
-    success: true,
-    message: `New user ${user.email} verified`,
-  });
-});
+    user.isVerified = true
+    await user.save()
 
-module.exports = verifyEmail;
+    return res.status(201).json({
+        success: true,
+        message: `New user ${user.email} verified`,
+    })
+}
+
+module.exports = verifyEmail

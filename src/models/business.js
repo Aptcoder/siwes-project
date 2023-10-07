@@ -9,6 +9,12 @@ const businessSchema = new mongoose.Schema({
         unique: true,
     },
 
+    category: {
+        type: String,
+        required: true,
+        trim: true,
+    },
+
     phoneNumber: {
         type: String,
         required: true,
